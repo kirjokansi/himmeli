@@ -1,7 +1,9 @@
 package fi.kirjokansi.venuesearch;
 
+import android.location.Location;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,13 +20,14 @@ public class MainPresenterImpl implements MainPresenter, OnFinishedListener{
     }
 
     @Override
-    public void onSearchStringUpdated(String searchString) {
-        foursquareApi.doVenueSearch(this, searchString);
+    public void onSearchStringUpdated(String searchString, Location location) {
+        Log.d("VenueSearch", "MainPresenterImpl:onSearchStringUpdated");
+        foursquareApi.doVenueSearch(this, searchString, location);
     }
 
     @Override
-    public void OnVenuesSearchFinished(List<String> venues) {
+    public void OnVenuesSearchFinished(ArrayList venues) {
         Log.d("VenueSearch", "MainPresenterImpl:OnVenuesSearchFinished");
-        mainView.updateVenueList(venues);
+        mainView.onUpdateVenueList(venues);
     }
 }
