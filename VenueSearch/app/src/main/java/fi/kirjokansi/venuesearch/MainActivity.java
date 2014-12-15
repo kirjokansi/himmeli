@@ -1,9 +1,7 @@
 package fi.kirjokansi.venuesearch;
 
 import android.app.Activity;
-import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,29 +11,32 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends Activity implements MainView {
 
+    private static final String TAG = MainActivity.class.getSimpleName();
     private ListView listView;
     private EditText searchText;
     private MainPresenter presenter;
-    private ArrayList venueList;
+    private List<String> venueList;
     private Location location;
     private ArrayAdapter listAdapter;
 
     private TextWatcher onClick = new TextWatcher() {
         @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            Log.d("VenueSearch", "beforeTextChanged: "+count);
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            Log.d(TAG, "onTextChanged() char count: "+count);
             if (count > 0) {
                 presenter.onSearchStringUpdated(searchText.getText().toString(), location);
             }
         }
         @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
         @Override
         public void afterTextChanged(Editable s) {}
     };
@@ -44,29 +45,34 @@ public class MainActivity extends Activity implements MainView {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        presenter = new MainPresenterImpl(this);
-        venueList = new ArrayList();
-
-        listView = (ListView) findViewById(R.id.listView);
-        searchText = (EditText) findViewById(R.id.editText);
-        searchText.addTextChangedListener(onClick);
-
-        LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
-        String provider = lm.getBestProvider(new Criteria(), false);
-        location = lm.getLastKnownLocation(provider);
+        presenter = MainPresenterImpl.getInstance(this);
 
         if (savedInstanceState != null) {
             venueList = savedInstanceState.getStringArrayList("venueList");
+        } else {
+            venueList = new ArrayList();
         }
+
+        location = MyLocation.getInstance().getLastLocation(this);
+        Log.d(TAG, "onCreate() loc: "+location);
+
+        if (location == null) {
+            Toast.makeText(this, "Location not available. Unable to search local venues.", Toast.LENGTH_SHORT)
+                .show();
+        }
+
+        searchText = (EditText) findViewById(R.id.editText);
+        searchText.addTextChangedListener(onClick);
+
+        listView = (ListView) findViewById(R.id.listView);
         listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, venueList);
         listView.setAdapter(listAdapter);
-
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putStringArrayList("venueList", venueList);
+        outState.putStringArrayList("venueList", (ArrayList)venueList);
     }
 
     @Override
@@ -92,8 +98,8 @@ public class MainActivity extends Activity implements MainView {
     }
 
     @Override
-    public void onUpdateVenueList(ArrayList venues) {
-        Log.d("VenueSearch", "onUpdateVenueList: "+venues.toString());
+    public void onUpdateVenueList(List<String> venues) {
+        Log.d(TAG, "onUpdateVenueList() venues: "+venues.toString());
         venueList = venues;
         listAdapter.clear();
         listAdapter.addAll(venueList);
